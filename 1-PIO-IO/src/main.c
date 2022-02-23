@@ -34,6 +34,25 @@
 #define BUT_PIO_IDX			11
 #define BUT_PIO_IDX_MASK (1u << BUT_PIO_IDX) // esse já está pronto.
 
+// LED1 placa oled
+#define LED1_OLED_PIO		PIOA
+#define LED1_OLED_PIO_ID	ID_PIOA
+#define LED1_OLED_PIO_IDX	0
+#define LED1_OLED_PIO_IDX_MASK  (1 << LED1_OLED_PIO_IDX)
+
+// LED2 placa oled
+#define LED2_OLED_PIO		PIOC
+#define LED2_OLED_PIO_ID	ID_PIOC
+#define LED2_OLED_PIO_IDX	30
+#define LED2_OLED_PIO_IDX_MASK  (1 << LED2_OLED_PIO_IDX)
+
+// LED3 placa oled
+#define LED3_OLED_PIO		PIOB
+#define LED3_OLED_PIO_ID	ID_PIOB
+#define LED3_OLED_PIO_IDX	2
+#define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
+
+
 
 /************************************************************************/
 /* constants                                                            */
@@ -66,13 +85,17 @@ void init(void){
 	WDT->WDT_MR = WDT_MR_WDDIS;
 	// Ativa o PIO na qual o LED foi conectado
 	// para que possamos controlar o LED.
-	pmc_enable_periph_clk(LED_PIO_ID); 
+	pmc_enable_periph_clk(LED1_OLED_PIO_ID);
+	pmc_enable_periph_clk(LED2_OLED_PIO_ID); 
+	pmc_enable_periph_clk(LED3_OLED_PIO_ID);  
 	// Inicializa PIO do botao
 	pmc_enable_periph_clk(BUT_PIO_ID);
 
 	
 	//Inicializa PC8 como saída
-	pio_set_output(LED_PIO, LED_PIO_IDX_MASK, 0, 0, 0);
+	pio_set_output(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK, 0, 0, 0);
+	pio_set_output(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK, 0, 0, 0);
+	pio_set_output(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK, 0, 0, 0);
 	// configura pino ligado ao botão como entrada com um pull-up.
 	pio_set_input(BUT_PIO, BUT_PIO_IDX_MASK, PIO_DEFAULT);
 	// Inicializa botao como energizado:
@@ -95,17 +118,30 @@ int main(void)
   // aplicacoes embarcadas não devem sair do while(1).
   while (1)
   {
-	if (!pio_get(BUT_PIO, PIO_INPUT, BUT_PIO_IDX_MASK)) {
-		for (int i =0; i < 10; i++) {
+	pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+	pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
+	pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);       // Coloca 1 no pino LED
+	delay_ms(200);                        // Delay por software de 200 ms
+	pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+	pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
+	pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);     // Coloca 0 no pino do LED
+	delay_ms(200);                        // Delay por software de 200 ms
+		
+  }
+  return 0;
+}
+
+//Codigo anterior entrega obrigatoria:
+/*
+if (!pio_get(BUT_PIO, PIO_INPUT, BUT_PIO_IDX_MASK)) {
+	for (int i =0; i < 10; i++) {
 		
 		pio_set(LED_PIO, LED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 		delay_ms(200);                        // Delay por software de 200 ms
 		pio_clear(LED_PIO, LED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 		delay_ms(200);                        // Delay por software de 200 ms
-		}
-	} else {
-		pio_set(LED_PIO, LED_PIO_IDX_MASK);
 	}
-  }
-  return 0;
+	} else {
+	pio_set(LED_PIO, LED_PIO_IDX_MASK);
 }
+*/
