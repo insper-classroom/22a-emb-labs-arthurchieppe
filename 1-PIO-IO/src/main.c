@@ -149,7 +149,7 @@ int main(void)
   while (1)
   {
 	if (!pio_get(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK)) {
-		for (int i =0; i < 10; i++) {
+		for (int i =0; i < 5; i++) {
 			
 			pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 			delay_ms(200);                        // Delay por software de 200 ms
@@ -158,7 +158,7 @@ int main(void)
 			}
 		
 		} else if (!pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
-			for (int i =0; i < 10; i++) {
+			for (int i =0; i < 5; i++) {
 				
 				pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
@@ -167,7 +167,7 @@ int main(void)
 			}
 			
 		} else if (!pio_get(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK)) {
-			for (int i =0; i < 10; i++) {
+			for (int i =0; i < 5; i++) {
 				
 				pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
