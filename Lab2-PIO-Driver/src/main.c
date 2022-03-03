@@ -134,6 +134,20 @@ void init(void){
 
 }
 
+//LAB 2:
+/**
+ * \brief Set a high output level on all the PIOs defined in ul_mask.
+ * This has no immediate effects on PIOs that are not output, but the PIO
+ * controller will save the value if they are changed to outputs.
+ *
+ * \param p_pio Pointer to a PIO instance.
+ * \param ul_mask Bitmask of one or more pin(s) to configure.
+ */
+void _pio_set(Pio *p_pio, const uint32_t ul_mask)
+{
+	p_pio->PIO_SODR = ul_mask;
+}
+
 
 /************************************************************************/
 /* Main                                                                 */
@@ -151,7 +165,7 @@ int main(void)
 	if (!pio_get(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK)) {
 		for (int i =0; i < 5; i++) {
 			
-			pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
+			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 			delay_ms(200);                        // Delay por software de 200 ms
 			pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 			delay_ms(200);                        // Delay por software de 200 ms
@@ -160,7 +174,7 @@ int main(void)
 		} else if (!pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
-				pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
+				_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
 				pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 				delay_ms(200);                        // Delay por software de 200 ms
@@ -169,28 +183,28 @@ int main(void)
 		} else if (!pio_get(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
-				pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
+				_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
 				pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 				delay_ms(200);                        // Delay por software de 200 ms
 			}
 		} else {
-			pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
-			pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);
-			pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
+			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+			_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);
+			_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
 		}
 	/*} else if (!pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
 		for (int i =0; i < 10; i++) {
-			pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
+			_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 			delay_ms(200);                        // Delay por software de 200 ms
 			pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 			delay_ms(200);                        // Delay por software de 200 ms
 		}
 		
 	  
-	pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
-	pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
-	pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);       // Coloca 1 no pino LED
+	_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+	_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
+	_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);       // Coloca 1 no pino LED
 	delay_ms(200);                        // Delay por software de 200 ms
 	pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
 	pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
@@ -208,12 +222,12 @@ int main(void)
 if (!pio_get(BUT_PIO, PIO_INPUT, BUT_PIO_IDX_MASK)) {
 	for (int i =0; i < 10; i++) {
 		
-		pio_set(LED_PIO, LED_PIO_IDX_MASK);      // Coloca 1 no pino LED
+		_pio_set(LED_PIO, LED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 		delay_ms(200);                        // Delay por software de 200 ms
 		pio_clear(LED_PIO, LED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 		delay_ms(200);                        // Delay por software de 200 ms
 	}
 	} else {
-	pio_set(LED_PIO, LED_PIO_IDX_MASK);
+	_pio_set(LED_PIO, LED_PIO_IDX_MASK);
 }
 */
