@@ -73,7 +73,45 @@
 #define LED3_OLED_PIO_IDX	2
 #define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
 
+//LAB 2:
+/**
+ * \brief Set a high output level on all the PIOs defined in ul_mask.
+ * This has no immediate effects on PIOs that are not output, but the PIO
+ * controller will save the value if they are changed to outputs.
+ *
+ * \param p_pio Pointer to a PIO instance.
+ * \param ul_mask Bitmask of one or more pin(s) to configure.
+ */
+void _pio_set(Pio *p_pio, const uint32_t ul_mask)
+{
+	p_pio->PIO_SODR = ul_mask;
+}
 
+/**
+ * \brief Set a low output level on all the PIOs defined in ul_mask.
+ * This has no immediate effects on PIOs that are not output, but the PIO
+ * controller will save the value if they are changed to outputs.
+ *
+ * \param p_pio Pointer to a PIO instance.
+ * \param ul_mask Bitmask of one or more pin(s) to configure.
+ */
+void _pio_clear(Pio *p_pio, const uint32_t ul_mask)
+{
+	p_pio->PIO_CODR = ul_mask;
+}
+
+/**
+ * \brief Configure PIO internal pull-up.
+ *
+ * \param p_pio Pointer to a PIO instance.
+ * \param ul_mask Bitmask of one or more pin(s) to configure.
+ * \param ul_pull_up_enable Indicates if the pin(s) internal pull-up shall be
+ * configured.
+ */
+void _pio_pull_up(Pio *p_pio, const uint32_t ul_mask,
+        const uint32_t ul_pull_up_enable){
+	p_pio->PIO_PUER = ul_mask;
+ }
 
 /************************************************************************/
 /* constants                                                            */
@@ -126,27 +164,14 @@ void init(void){
 	pio_set_input(BUT2_PIO, BUT2_PIO_IDX_MASK, PIO_DEFAULT);
 	pio_set_input(BUT3_PIO, BUT3_PIO_IDX_MASK, PIO_DEFAULT);
 	// Inicializa botao como energizado:
-	//pio_pull_up(BUT_PIO, BUT_PIO_IDX_MASK, 1);
-	pio_pull_up(BUT1_PIO, BUT1_PIO_IDX_MASK, 1);
-	pio_pull_up(BUT2_PIO, BUT2_PIO_IDX_MASK, 1);
-	pio_pull_up(BUT3_PIO, BUT3_PIO_IDX_MASK, 1);
+	//_pio_pull_up(BUT_PIO, BUT_PIO_IDX_MASK, 1);
+	_pio_pull_up(BUT1_PIO, BUT1_PIO_IDX_MASK, 1);
+	_pio_pull_up(BUT2_PIO, BUT2_PIO_IDX_MASK, 1);
+	_pio_pull_up(BUT3_PIO, BUT3_PIO_IDX_MASK, 1);
 
 
 }
 
-//LAB 2:
-/**
- * \brief Set a high output level on all the PIOs defined in ul_mask.
- * This has no immediate effects on PIOs that are not output, but the PIO
- * controller will save the value if they are changed to outputs.
- *
- * \param p_pio Pointer to a PIO instance.
- * \param ul_mask Bitmask of one or more pin(s) to configure.
- */
-void _pio_set(Pio *p_pio, const uint32_t ul_mask)
-{
-	p_pio->PIO_SODR = ul_mask;
-}
 
 
 /************************************************************************/
@@ -167,7 +192,7 @@ int main(void)
 			
 			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 			delay_ms(200);                        // Delay por software de 200 ms
-			pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
+			_pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 			delay_ms(200);                        // Delay por software de 200 ms
 			}
 		
@@ -176,7 +201,7 @@ int main(void)
 				
 				_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
-				pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
+				_pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 				delay_ms(200);                        // Delay por software de 200 ms
 			}
 			
@@ -185,7 +210,7 @@ int main(void)
 				
 				_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 				delay_ms(200);                        // Delay por software de 200 ms
-				pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
+				_pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 				delay_ms(200);                        // Delay por software de 200 ms
 			}
 		} else {
@@ -197,7 +222,7 @@ int main(void)
 		for (int i =0; i < 10; i++) {
 			_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 			delay_ms(200);                        // Delay por software de 200 ms
-			pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
+			_pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 			delay_ms(200);                        // Delay por software de 200 ms
 		}
 		
@@ -206,9 +231,9 @@ int main(void)
 	_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
 	_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);       // Coloca 1 no pino LED
 	delay_ms(200);                        // Delay por software de 200 ms
-	pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
-	pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
-	pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);     // Coloca 0 no pino do LED
+	_pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+	_pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK); 
+	_pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);     // Coloca 0 no pino do LED
 	delay_ms(200);                        // Delay por software de 200 ms
 		
 		
@@ -224,7 +249,7 @@ if (!pio_get(BUT_PIO, PIO_INPUT, BUT_PIO_IDX_MASK)) {
 		
 		_pio_set(LED_PIO, LED_PIO_IDX_MASK);      // Coloca 1 no pino LED
 		delay_ms(200);                        // Delay por software de 200 ms
-		pio_clear(LED_PIO, LED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
+		_pio_clear(LED_PIO, LED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
 		delay_ms(200);                        // Delay por software de 200 ms
 	}
 	} else {
