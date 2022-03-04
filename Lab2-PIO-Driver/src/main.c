@@ -242,6 +242,13 @@ uint32_t _pio_get(Pio *p_pio, const pio_type_t ul_type,
 	}
 }
 
+//Conceito A:
+void _delay_ms(int ms) {
+	for (int i = 0; i < (300000/2)*ms; i++){
+		asm("NOP");
+	}
+}
+
 
 
  
@@ -307,27 +314,27 @@ int main(void)
 		for (int i =0; i < 5; i++) {
 			
 			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
-			delay_ms(200);                        // Delay por software de 200 ms
+			_delay_ms(200);                        // Delay por software de 200 ms
 			_pio_clear(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
-			delay_ms(200);                        // Delay por software de 200 ms
+			_delay_ms(200);                        // Delay por software de 200 ms
 			}
 		
 		} else if (!_pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
 				_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
-				delay_ms(200);                        // Delay por software de 200 ms
+				_delay_ms(200);                        // Delay por software de 200 ms
 				_pio_clear(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
-				delay_ms(200);                        // Delay por software de 200 ms
+				_delay_ms(200);                        // Delay por software de 200 ms
 			}
 			
 		} else if (!_pio_get(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
 				_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
-				delay_ms(200);                        // Delay por software de 200 ms
+				_delay_ms(200);                        // Delay por software de 200 ms
 				_pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);    // Coloca 0 no pino do LED
-				delay_ms(200);                        // Delay por software de 200 ms
+				_delay_ms(200);                        // Delay por software de 200 ms
 			}
 		} else {
 			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
