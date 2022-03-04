@@ -210,6 +210,38 @@ void _pio_set_output(Pio *p_pio, const uint32_t ul_mask,
 	p_pio->PIO_PER = ul_mask;
 }
 
+/**
+ * \brief Return 1 if one or more PIOs of the given Pin instance currently have
+ * a high level; otherwise returns 0. This method returns the actual value that
+ * is being read on the pin. To return the supposed output value of a pin, use
+ * pio_get_output_data_status() instead.
+ *
+ * \param p_pio Pointer to a PIO instance.
+ * \param ul_type PIO type.
+ * \param ul_mask Bitmask of one or more pin(s) to configure.
+ *
+ * \retval 1 at least one PIO currently has a high level.
+ * \retval 0 all PIOs have a low level.
+ */
+uint32_t _pio_get(Pio *p_pio, const pio_type_t ul_type,
+        const uint32_t ul_mask)
+{
+	uint32_t ul_reg;
+
+	if (ul_type == PIO_OUTPUT_0) {
+		ul_reg = p_pio->PIO_ODSR;
+		} 
+	else if (ul_type == PIO_INPUT) {
+		ul_reg = p_pio->PIO_PDSR;
+	}
+
+	if ((ul_reg & ul_mask) == 0) {
+		return 0;
+		} else {
+		return 1;
+	}
+}
+
 
 
  
@@ -271,7 +303,7 @@ int main(void)
   // aplicacoes embarcadas não devem sair do while(1).
   while (1)
   {
-	if (!pio_get(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK)) {
+	if (!_pio_get(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK)) {
 		for (int i =0; i < 5; i++) {
 			
 			_pio_set(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
@@ -280,7 +312,7 @@ int main(void)
 			delay_ms(200);                        // Delay por software de 200 ms
 			}
 		
-		} else if (!pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
+		} else if (!_pio_get(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
 				_pio_set(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
@@ -289,7 +321,7 @@ int main(void)
 				delay_ms(200);                        // Delay por software de 200 ms
 			}
 			
-		} else if (!pio_get(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK)) {
+		} else if (!_pio_get(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK)) {
 			for (int i =0; i < 5; i++) {
 				
 				_pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);      // Coloca 1 no pino LED
