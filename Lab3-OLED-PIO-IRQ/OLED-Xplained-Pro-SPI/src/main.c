@@ -11,6 +11,12 @@
 #define LED_IDX      8
 #define LED_IDX_MASK (1 << LED_IDX)
 
+// Botão 0 placa
+#define BUT0_PIO      PIOA
+#define BUT0_PIO_ID   ID_PIOA
+#define BUT0_IDX  11
+#define BUT0_IDX_MASK (1 << BUT0_IDX)
+
 // Configuracoes do botao da placa OLED:
 #define BUT1_PIO				PIOD
 #define BUT1_PIO_ID				ID_PIOD
@@ -18,6 +24,7 @@
 #define BUT1_PIO_IDX_MASK (1u << BUT1_PIO_IDX) // esse já está pronto.
 
 //Globals:
+volatile char but0_flag;
 volatile char but1_flag;
 volatile char but1_fall_flag;
 volatile char but1_rise_flag;
@@ -39,6 +46,10 @@ void but1_callback(void) {
 		but1_fall_flag = 0;
 		but1_rise_flag = 1;
 	}
+}
+
+void but0_callback(void) {
+	but0_flag = 1;
 }
 
 
@@ -74,17 +85,27 @@ void io_init(void)
 	pio_configure(LED_PIO, PIO_OUTPUT_0, LED_IDX_MASK, PIO_DEFAULT);
 
 	// Inicializa clock do periférico PIO responsavel pelo botao
+	pmc_enable_periph_clk(BUT0_PIO_ID);
 	pmc_enable_periph_clk(BUT1_PIO_ID);
 
 	// Configura PIO para lidar com o pino do botão como entrada
 	// com pull-up
+	//Botao 0:
+	pio_configure(BUT0_PIO, PIO_INPUT, BUT0_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(BUT0_PIO, BUT0_IDX_MASK, 60);
+	//Botao 1:
 	pio_configure(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
 	pio_set_debounce_filter(BUT1_PIO, BUT1_PIO_IDX_MASK, 60);
-
 
 	// Configura interrupção no pino referente ao botao e associa
 	// função de callback caso uma interrupção for gerada
 	// a função de callback é a: but_callback()
+	pio_handler_set(BUT0_PIO,
+	BUT0_PIO_ID,
+	BUT0_IDX_MASK,
+	PIO_IT_RISE_EDGE,
+	but0_callback);
+	
 	pio_handler_set(BUT1_PIO,
 	BUT1_PIO_ID,
 	BUT1_PIO_IDX_MASK,
@@ -92,11 +113,17 @@ void io_init(void)
 	but1_callback);
 
 	// Ativa interrupção e limpa primeira IRQ gerada na ativacao
+	pio_enable_interrupt(BUT0_PIO, BUT0_IDX_MASK);
+	pio_get_interrupt_status(BUT0_PIO);
+	
 	pio_enable_interrupt(BUT1_PIO, BUT1_PIO_IDX_MASK);
 	pio_get_interrupt_status(BUT1_PIO);
 	
 	// Configura NVIC para receber interrupcoes do PIO do botao
 	// com prioridade 4 (quanto mais próximo de 0 maior)
+	NVIC_EnableIRQ(BUT0_PIO_ID);
+	NVIC_SetPriority(BUT0_PIO_ID, 4);
+	
 	NVIC_EnableIRQ(BUT1_PIO_ID);
 	NVIC_SetPriority(BUT1_PIO_ID, 4); // Prioridade 4
 }
@@ -144,10 +171,10 @@ int main (void)
 				delay_ms(100);
 			}
 		}
-		if (but1_rise_flag) {
-			pisca_led(5); //Mudar para 30
+		if (but0_flag) {
+			pisca_led(10); //Mudar para 30
 			update_display();
-			but1_rise_flag = 0;	
+			but0_flag = 0;	
 			}
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	
