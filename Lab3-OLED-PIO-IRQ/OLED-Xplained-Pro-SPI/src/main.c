@@ -23,11 +23,25 @@
 #define BUT1_PIO_IDX			28
 #define BUT1_PIO_IDX_MASK (1u << BUT1_PIO_IDX) // esse já está pronto.
 
+// Configuracoes do botao da placa OLED:
+#define BUT2_PIO				PIOC
+#define BUT2_PIO_ID				ID_PIOC
+#define BUT2_PIO_IDX			31
+#define BUT2_PIO_IDX_MASK (1u << BUT2_PIO_IDX) // esse já está pronto.
+
+// Configuracoes do botao da placa OLED:
+#define BUT3_PIO				PIOA
+#define BUT3_PIO_ID				ID_PIOA
+#define BUT3_PIO_IDX			19
+#define BUT3_PIO_IDX_MASK (1u << BUT3_PIO_IDX) // esse já está pronto.
+
 //Globals:
 volatile char but0_flag;
 volatile char but1_flag;
 volatile char but1_fall_flag;
 volatile char but1_rise_flag;
+volatile char but2_flag;
+volatile char but3_flag;
 int delay = 200;
 
 /* prototype                                                            */
@@ -52,6 +66,14 @@ void but0_callback(void) {
 	but0_flag = 1;
 }
 
+void but2_callback(void) {
+	but2_flag = 1;
+}
+
+void but3_callback(void) {
+	but3_flag = 1;
+}
+
 
 
 /************************************************************************/
@@ -60,9 +82,10 @@ void but0_callback(void) {
 // pisca led N vez no periodo T
 void pisca_led(int n){
 	for (int i=0;i<n;i++){
-		//if (but1_fall_flag) {
-			//break;
-		//}
+		if (but2_flag) {
+			but2_flag = 0;
+			break;
+		}
 		pio_set(LED_PIO, LED_IDX_MASK);
 		delay_ms(delay);
 		pio_clear(LED_PIO, LED_IDX_MASK);
@@ -87,6 +110,8 @@ void io_init(void)
 	// Inicializa clock do periférico PIO responsavel pelo botao
 	pmc_enable_periph_clk(BUT0_PIO_ID);
 	pmc_enable_periph_clk(BUT1_PIO_ID);
+	pmc_enable_periph_clk(BUT2_PIO_ID);
+	pmc_enable_periph_clk(BUT3_PIO_ID);
 
 	// Configura PIO para lidar com o pino do botão como entrada
 	// com pull-up
@@ -96,7 +121,13 @@ void io_init(void)
 	//Botao 1:
 	pio_configure(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
 	pio_set_debounce_filter(BUT1_PIO, BUT1_PIO_IDX_MASK, 60);
-
+	//Botao 2
+	pio_configure(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(BUT2_PIO, BUT2_PIO_IDX_MASK, 60);
+	//Botao 3
+	pio_configure(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(BUT3_PIO, BUT3_PIO_IDX_MASK, 60);
+	
 	// Configura interrupção no pino referente ao botao e associa
 	// função de callback caso uma interrupção for gerada
 	// a função de callback é a: but_callback()
@@ -111,6 +142,18 @@ void io_init(void)
 	BUT1_PIO_IDX_MASK,
 	PIO_IT_EDGE,
 	but1_callback);
+	
+	pio_handler_set(BUT2_PIO,
+	BUT2_PIO_ID,
+	BUT2_PIO_IDX_MASK,
+	PIO_IT_EDGE,
+	but2_callback);
+	
+	pio_handler_set(BUT3_PIO,
+	BUT3_PIO_ID,
+	BUT3_PIO_IDX_MASK,
+	PIO_IT_EDGE,
+	but3_callback);
 
 	// Ativa interrupção e limpa primeira IRQ gerada na ativacao
 	pio_enable_interrupt(BUT0_PIO, BUT0_IDX_MASK);
@@ -119,6 +162,12 @@ void io_init(void)
 	pio_enable_interrupt(BUT1_PIO, BUT1_PIO_IDX_MASK);
 	pio_get_interrupt_status(BUT1_PIO);
 	
+	pio_enable_interrupt(BUT2_PIO, BUT2_PIO_IDX_MASK);
+	pio_get_interrupt_status(BUT2_PIO);
+	
+	pio_enable_interrupt(BUT3_PIO, BUT3_PIO_IDX_MASK);
+	pio_get_interrupt_status(BUT3_PIO);
+	
 	// Configura NVIC para receber interrupcoes do PIO do botao
 	// com prioridade 4 (quanto mais próximo de 0 maior)
 	NVIC_EnableIRQ(BUT0_PIO_ID);
@@ -126,6 +175,12 @@ void io_init(void)
 	
 	NVIC_EnableIRQ(BUT1_PIO_ID);
 	NVIC_SetPriority(BUT1_PIO_ID, 4); // Prioridade 4
+	
+	NVIC_EnableIRQ(BUT2_PIO_ID);
+	NVIC_SetPriority(BUT2_PIO_ID, 3); // Prioridade 3
+	
+	NVIC_EnableIRQ(BUT3_PIO_ID);
+	NVIC_SetPriority(BUT3_PIO_ID, 4); // Prioridade 4
 }
 
 
