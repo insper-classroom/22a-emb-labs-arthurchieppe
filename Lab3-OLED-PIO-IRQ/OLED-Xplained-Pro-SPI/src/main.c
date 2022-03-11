@@ -80,24 +80,35 @@ void but3_callback(void) {
 /* funções                                                              */
 /************************************************************************/
 // pisca led N vez no periodo T
-void pisca_led(int n){
-	for (int i=0;i<n;i++){
-		if (but2_flag) {
-			but2_flag = 0;
-			break;
-		}
-		pio_set(LED_PIO, LED_IDX_MASK);
-		delay_ms(delay);
-		pio_clear(LED_PIO, LED_IDX_MASK);
-		delay_ms(delay);
-	}
-}
-
 void update_display() {
 	char str[128];
 	sprintf(str, "%dms", delay);
 	gfx_mono_draw_string(str, 16,16, &sysfont);
 }
+
+void pisca_led(int n){
+	int width = 50;
+	int progress = width/n;
+	gfx_mono_generic_draw_filled_rect(70, 14, 50, 10, GFX_PIXEL_CLR);
+	gfx_mono_generic_draw_rect(70, 14, 50, 10, GFX_PIXEL_SET);	
+	for (int i=0;i<n;i++){
+		if (but2_flag) {
+			but2_flag = 0;
+			gfx_mono_generic_draw_filled_rect(70, 14, 50, 10, GFX_PIXEL_CLR);
+			gfx_mono_generic_draw_rect(70, 14, 50, 10, GFX_PIXEL_SET);
+			break;
+		}
+		gfx_mono_generic_draw_filled_rect(70, 14, progress*i, 9, GFX_PIXEL_SET);
+		pio_set(LED_PIO, LED_IDX_MASK);
+		delay_ms(delay);
+		pio_clear(LED_PIO, LED_IDX_MASK);
+		delay_ms(delay);
+	}
+	gfx_mono_generic_draw_filled_rect(70, 14, 50, 10, GFX_PIXEL_CLR);
+	gfx_mono_generic_draw_rect(70, 14, 50, 10, GFX_PIXEL_SET);
+}
+
+
 
 // Inicializa botao SW0 do kit com interrupcao
 void io_init(void)
@@ -199,6 +210,8 @@ int main (void)
   
   
 	update_display();
+	gfx_mono_generic_draw_filled_rect(70, 14, 50, 10, GFX_PIXEL_CLR);
+	gfx_mono_generic_draw_rect(70, 14, 50, 10, GFX_PIXEL_SET);
   
   
 
