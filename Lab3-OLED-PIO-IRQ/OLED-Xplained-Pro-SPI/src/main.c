@@ -217,7 +217,7 @@ int main (void)
 						delay = 100;
 					}
 					update_display();
-					delay_ms(100);
+					delay_ms(300);
 				}
 			}
 			if (counter <= 300000000) {
@@ -231,6 +231,16 @@ int main (void)
 			update_display();
 			but0_flag = 0;	
 			}
+		if (but3_flag) {
+			delay -= 100;
+			if (delay <= 0) {
+				delay = 100;
+			}
+			update_display();
+			delay_ms(200);
+			but3_flag = 0;
+			
+		}
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	
 
