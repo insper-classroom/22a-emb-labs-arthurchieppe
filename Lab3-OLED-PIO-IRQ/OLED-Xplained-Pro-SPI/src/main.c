@@ -95,8 +95,8 @@ void pisca_led(int n){
 
 void update_display() {
 	char str[128];
-	sprintf(str, "%d ms", delay);
-	gfx_mono_draw_string(str, 50,16, &sysfont);
+	sprintf(str, "%dms", delay);
+	gfx_mono_draw_string(str, 16,16, &sysfont);
 }
 
 // Inicializa botao SW0 do kit com interrupcao
@@ -146,13 +146,13 @@ void io_init(void)
 	pio_handler_set(BUT2_PIO,
 	BUT2_PIO_ID,
 	BUT2_PIO_IDX_MASK,
-	PIO_IT_EDGE,
+	PIO_IT_RISE_EDGE,
 	but2_callback);
 	
 	pio_handler_set(BUT3_PIO,
 	BUT3_PIO_ID,
 	BUT3_PIO_IDX_MASK,
-	PIO_IT_EDGE,
+	PIO_IT_RISE_EDGE,
 	but3_callback);
 
 	// Ativa interrupção e limpa primeira IRQ gerada na ativacao
@@ -198,10 +198,7 @@ int main (void)
 	gfx_mono_ssd1306_init();
   
   
-	gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-	char str[128];
-	sprintf(str, "%d ms", delay);
-	gfx_mono_draw_string(str, 50,16, &sysfont);
+	update_display();
   
   
 
@@ -237,7 +234,7 @@ int main (void)
 				delay = 100;
 			}
 			update_display();
-			delay_ms(200);
+			delay_ms(100);
 			but3_flag = 0;
 			
 		}
