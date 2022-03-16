@@ -28,9 +28,17 @@
 #define LED3_OLED_PIO_IDX	2
 #define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
 
+//TC
 void LED_init(int estado);
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq);
 void pin_toggle(Pio *pio, uint32_t mask);
+
+//RTT
+void pin_toggle(Pio *pio, uint32_t mask);
+void io_init(void);
+static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource);
+
+//RTC
 
 void pin_toggle(Pio *pio, uint32_t mask) {
 	if(pio_get_output_data_status(pio, mask))
@@ -42,6 +50,8 @@ void pin_toggle(Pio *pio, uint32_t mask) {
 void LED_init(int estado) {
 	pmc_enable_periph_clk(LED1_OLED_PIO_ID);
 	pio_set_output(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK, estado, 0, 0);
+	pmc_enable_periph_clk(LED2_OLED_PIO_ID);
+	pio_set_output(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK, estado, 0, 0);
 };
 
 void TC1_Handler(void) {
@@ -74,6 +84,57 @@ void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
 	tc_enable_interrupt(TC, TC_CHANNEL, TC_IER_CPCS);
 }
 
+void RTT_Handler(void) {
+	uint32_t ul_status;
+
+	/* Get RTT status - ACK */
+	ul_status = rtt_get_status(RTT);
+
+	/* IRQ due to Alarm */
+	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
+		pin_toggle(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);
+		RTT_init(1, 4, RTT_MR_RTTINCIEN);
+	}
+	
+	/* IRQ due to Time has changed */
+	if ((ul_status & RTT_SR_RTTINC) == RTT_SR_RTTINC) {
+		;    // BLINK Led
+	}
+
+}
+
+static float get_time_rtt(){
+	uint ul_previous_time = rtt_read_timer_value(RTT);
+}
+
+static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource) {
+
+	uint16_t pllPreScale = (int) (((float) 32768) / freqPrescale);
+	
+	rtt_sel_source(RTT, false);
+	rtt_init(RTT, pllPreScale);
+	
+	if (rttIRQSource & RTT_MR_ALMIEN) {
+		uint32_t ul_previous_time;
+		ul_previous_time = rtt_read_timer_value(RTT);
+		while (ul_previous_time == rtt_read_timer_value(RTT));
+		rtt_write_alarm_time(RTT, IrqNPulses+ul_previous_time);
+	}
+
+	/* config NVIC */
+	NVIC_DisableIRQ(RTT_IRQn);
+	NVIC_ClearPendingIRQ(RTT_IRQn);
+	NVIC_SetPriority(RTT_IRQn, 4);
+	NVIC_EnableIRQ(RTT_IRQn);
+
+	/* Enable RTT interrupt */
+	if (rttIRQSource & (RTT_MR_RTTINCIEN | RTT_MR_ALMIEN))
+	rtt_enable_interrupt(RTT, rttIRQSource);
+	else
+	rtt_disable_interrupt(RTT, RTT_MR_RTTINCIEN | RTT_MR_ALMIEN);
+	
+}	
+
 int main (void)
 {
 	board_init();
@@ -89,8 +150,11 @@ int main (void)
 	gfx_mono_draw_string("mundo", 50,16, &sysfont);
 	
 	LED_init(1);
+	//TC
 	TC_init(TC0, ID_TC1, 1, 4);
 	tc_start(TC0, 1);
+	//RTT
+	RTT_init(1, 4, RTT_MR_ALMIEN); 
   
   
 
