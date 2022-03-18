@@ -52,6 +52,7 @@ static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSou
 //RTC
 volatile char flag_rtc_alarm = 0;
 volatile char but1_flag = 0;
+volatile char clock_flag = 0;
 void RTC_init(Rtc *rtc, uint32_t id_rtc, calendar t, uint32_t irq_type);
 void pisca_led(int n, int t);
 
@@ -130,11 +131,12 @@ void RTT_Handler(void) {
 }
 
 void RTC_Handler(void) {
-	uint32_t ul_status = rtc_get_status(RTC);
+	uint32_t ul_status = rtc_get_status(RTC);	
 	
 	/* seccond tick */
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
-		;// o código para irq de segundo vem aqui
+		clock_flag = 1;
+		// o código para irq de segundo vem aqui
 	}
 	
 	/* Time or date alarm */
@@ -240,8 +242,6 @@ int main (void)
 
   // Init OLED
 	gfx_mono_ssd1306_init();
-	gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-	gfx_mono_draw_string("mundo", 50,16, &sysfont);
 	
 	LED_init(1);
 	//TC
@@ -252,16 +252,29 @@ int main (void)
 	
 	/** Configura RTC */
 	calendar rtc_initial = {2018, 3, 19, 12, 15, 45 ,1};
-	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN);
+	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN | RTC_IER_SECEN);
 	
 	/* Leitura do valor atual do RTC */
 	uint32_t current_hour, current_min, current_sec;
 	uint32_t current_year, current_month, current_day, current_week;
-  
+	char str[128];
   
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
+		if (clock_flag) {
+			rtc_get_time(RTC, &current_hour, &current_min, &current_sec);
+			gfx_mono_draw_string("           ", 0, 0, &sysfont);
+			if (current_sec > 9) {
+				sprintf(str, "%d:%d:%d", current_hour, current_min, current_sec);
+			} else {
+				sprintf(str, "%d:%d:0%d", current_hour, current_min, current_sec);
+			}
+			
+			gfx_mono_draw_string(str, 0,0, &sysfont);
+			clock_flag = 0;
+			
+		}
 		if (but1_flag) {
 			rtc_get_time(RTC, &current_hour, &current_min, &current_sec);
 			rtc_get_date(RTC, &current_year, &current_month, &current_day, &current_week);
