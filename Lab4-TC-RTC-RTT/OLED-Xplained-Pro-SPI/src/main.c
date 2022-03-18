@@ -10,6 +10,8 @@
 #define BUT1_PIO_IDX			28
 #define BUT1_PIO_IDX_MASK (1u << BUT1_PIO_IDX) // esse já está pronto.
 
+
+
 // LED1 placa oled
 #define LED1_OLED_PIO		PIOA
 #define LED1_OLED_PIO_ID	ID_PIOA
@@ -28,17 +30,30 @@
 #define LED3_OLED_PIO_IDX	2
 #define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
 
+typedef struct  {
+	uint32_t year;
+	uint32_t month;
+	uint32_t day;
+	uint32_t week;
+	uint32_t hour;
+	uint32_t minute;
+	uint32_t second;
+} calendar;
+	
 //TC
 void LED_init(int estado);
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq);
 void pin_toggle(Pio *pio, uint32_t mask);
 
 //RTT
-void pin_toggle(Pio *pio, uint32_t mask);
 void io_init(void);
 static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource);
 
 //RTC
+volatile char flag_rtc_alarm = 0;
+volatile char but1_flag = 0;
+void RTC_init(Rtc *rtc, uint32_t id_rtc, calendar t, uint32_t irq_type);
+void pisca_led(int n, int t);
 
 void pin_toggle(Pio *pio, uint32_t mask) {
 	if(pio_get_output_data_status(pio, mask))
@@ -47,11 +62,22 @@ void pin_toggle(Pio *pio, uint32_t mask) {
 	pio_set(pio,mask);
 }
 
+void pisca_led (int n, int t) {
+	for (int i=0;i<n;i++){
+		pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
+		delay_ms(t);
+		pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
+		delay_ms(t);
+	}
+}
+
 void LED_init(int estado) {
 	pmc_enable_periph_clk(LED1_OLED_PIO_ID);
 	pio_set_output(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK, estado, 0, 0);
 	pmc_enable_periph_clk(LED2_OLED_PIO_ID);
 	pio_set_output(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK, estado, 0, 0);
+	pmc_enable_periph_clk(LED3_OLED_PIO_ID);
+	pio_set_output(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK, estado, 0, 0);
 };
 
 void TC1_Handler(void) {
@@ -93,7 +119,7 @@ void RTT_Handler(void) {
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
 		pin_toggle(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);
-		RTT_init(1, 4, RTT_MR_RTTINCIEN);
+		RTT_init(1, 2, RTT_MR_RTTINCIEN);
 	}
 	
 	/* IRQ due to Time has changed */
@@ -101,6 +127,29 @@ void RTT_Handler(void) {
 		;    // BLINK Led
 	}
 
+}
+
+void RTC_Handler(void) {
+	uint32_t ul_status = rtc_get_status(RTC);
+	
+	/* seccond tick */
+	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
+		;// o código para irq de segundo vem aqui
+	}
+	
+	/* Time or date alarm */
+	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
+		// o código para irq de alame vem aqui
+		flag_rtc_alarm = 1;
+		but1_flag = 0;
+	}
+
+	rtc_clear_status(RTC, RTC_SCCR_SECCLR);
+	rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
+	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
+	rtc_clear_status(RTC, RTC_SCCR_TIMCLR);
+	rtc_clear_status(RTC, RTC_SCCR_CALCLR);
+	rtc_clear_status(RTC, RTC_SCCR_TDERRCLR);
 }
 
 static float get_time_rtt(){
@@ -133,12 +182,57 @@ static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSou
 	else
 	rtt_disable_interrupt(RTT, RTT_MR_RTTINCIEN | RTT_MR_ALMIEN);
 	
+}
+
+void RTC_init(Rtc *rtc, uint32_t id_rtc, calendar t, uint32_t irq_type) {
+	/* Configura o PMC */
+	pmc_enable_periph_clk(ID_RTC);
+
+	/* Default RTC configuration, 24-hour mode */
+	rtc_set_hour_mode(rtc, 0);
+
+	/* Configura data e hora manualmente */
+	rtc_set_date(rtc, t.year, t.month, t.day, t.week);
+	rtc_set_time(rtc, t.hour, t.minute, t.second);
+
+	/* Configure RTC interrupts */
+	NVIC_DisableIRQ(id_rtc);
+	NVIC_ClearPendingIRQ(id_rtc);
+	NVIC_SetPriority(id_rtc, 4);
+	NVIC_EnableIRQ(id_rtc);
+
+	/* Ativa interrupcao via alarme */
+	rtc_enable_interrupt(rtc,  irq_type);
+}
+
+void but1_callback(void) {
+	but1_flag = 1;
+}
+
+void io_init(void) {
+	pmc_enable_periph_clk(BUT1_PIO_ID);
+	pio_configure(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
+	pio_set_debounce_filter(BUT1_PIO, BUT1_PIO_IDX_MASK, 60);
+	
+	pio_handler_set(BUT1_PIO,
+	BUT1_PIO_ID,
+	BUT1_PIO_IDX_MASK,
+	PIO_IT_RISE_EDGE,
+	but1_callback);
+	
+	pio_enable_interrupt(BUT1_PIO, BUT1_PIO_IDX_MASK);
+	pio_get_interrupt_status(BUT1_PIO);
+	
+	NVIC_EnableIRQ(BUT1_PIO_ID);
+	NVIC_SetPriority(BUT1_PIO_ID, 3);
 }	
+
 
 int main (void)
 {
 	board_init();
 	sysclk_init();
+	io_init();
 	
 	/* Disable the watchdog */
 	WDT->WDT_MR = WDT_MR_WDDIS;
@@ -154,12 +248,31 @@ int main (void)
 	TC_init(TC0, ID_TC1, 1, 4);
 	tc_start(TC0, 1);
 	//RTT
-	RTT_init(1, 4, RTT_MR_ALMIEN); 
+	RTT_init(1, 2, RTT_MR_ALMIEN); 
+	
+	/** Configura RTC */
+	calendar rtc_initial = {2018, 3, 19, 12, 15, 45 ,1};
+	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN);
+	
+	/* Leitura do valor atual do RTC */
+	uint32_t current_hour, current_min, current_sec;
+	uint32_t current_year, current_month, current_day, current_week;
   
   
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
+		if (but1_flag) {
+			rtc_get_time(RTC, &current_hour, &current_min, &current_sec);
+			rtc_get_date(RTC, &current_year, &current_month, &current_day, &current_week);
+			rtc_set_date_alarm(RTC, 1, current_month, 1, current_day);
+			rtc_set_time_alarm(RTC, 1, current_hour, 1, current_min, 1, current_sec + 20);
+			but1_flag = 0;
+		}
+		if (flag_rtc_alarm) {
+			pisca_led(1,500);
+			flag_rtc_alarm = 0;
+		}
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
