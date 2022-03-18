@@ -44,6 +44,7 @@ typedef struct  {
 void LED_init(int estado);
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq);
 void pin_toggle(Pio *pio, uint32_t mask);
+volatile char counter = 0;
 
 //RTT
 void io_init(void);
@@ -79,7 +80,7 @@ void LED_init(int estado) {
 	pio_set_output(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK, estado, 0, 0);
 	pmc_enable_periph_clk(LED3_OLED_PIO_ID);
 	pio_set_output(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK, estado, 0, 0);
-};
+}
 
 void TC1_Handler(void) {
 	/**
@@ -90,6 +91,17 @@ void TC1_Handler(void) {
 
 	/** Muda o estado do LED (pisca) **/
 	pin_toggle(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);  
+}
+
+void TC3_Handler(void) {
+	/**
+	* Devemos indicar ao TC que a interrupção foi satisfeita.
+	* Isso é realizado pela leitura do status do periférico
+	**/
+	volatile uint32_t status = tc_get_status(TC1, 0);
+	if (but1_flag) {
+		counter += 1;
+	}
 }
 
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
@@ -142,8 +154,7 @@ void RTC_Handler(void) {
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
 		// o código para irq de alame vem aqui
-		flag_rtc_alarm = 1;
-		but1_flag = 0;
+		//flag_rtc_alarm = 1;
 	}
 
 	rtc_clear_status(RTC, RTC_SCCR_SECCLR);
@@ -246,7 +257,10 @@ int main (void)
 	LED_init(1);
 	//TC
 	TC_init(TC0, ID_TC1, 1, 4);
+	TC_init(TC1, ID_TC3, 0, 1);
+	
 	tc_start(TC0, 1);
+	tc_start(TC1, 0);
 	//RTT
 	RTT_init(1, 2, RTT_MR_ALMIEN); 
 	
@@ -275,16 +289,21 @@ int main (void)
 			clock_flag = 0;
 			
 		}
-		if (but1_flag) {
-			rtc_get_time(RTC, &current_hour, &current_min, &current_sec);
-			rtc_get_date(RTC, &current_year, &current_month, &current_day, &current_week);
-			rtc_set_date_alarm(RTC, 1, current_month, 1, current_day);
-			rtc_set_time_alarm(RTC, 1, current_hour, 1, current_min, 1, current_sec + 20);
+		//if (but1_flag) {
+			//rtc_get_time(RTC, &current_hour, &current_min, &current_sec);
+			//rtc_get_date(RTC, &current_year, &current_month, &current_day, &current_week);
+			//rtc_set_date_alarm(RTC, 1, current_month, 1, current_day);
+			//rtc_set_time_alarm(RTC, 1, current_hour, 1, current_min, 1, current_sec + 20);
+			//but1_flag = 0;
+		//}
+		//if (flag_rtc_alarm) {
+			//pisca_led(1,500);
+			//flag_rtc_alarm = 0;
+		//}
+		if (counter >= 20) {
+			pisca_led(1, 500);
+			counter = 0;
 			but1_flag = 0;
-		}
-		if (flag_rtc_alarm) {
-			pisca_led(1,500);
-			flag_rtc_alarm = 0;
 		}
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
