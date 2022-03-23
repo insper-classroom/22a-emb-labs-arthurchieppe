@@ -22,7 +22,6 @@
 #define Y_PIO_IDX				3
 #define Y_PIO_IDX_MASK			(1u << Y_PIO_IDX)
 
-
 // LED1 placa oled
 #define LED1_OLED_PIO		PIOA
 #define LED1_OLED_PIO_ID	ID_PIOA
