@@ -11,10 +11,10 @@
 #define X_PIO_IDX_MASK			(1u << X_PIO_IDX)
 
 //Pino Y
-#define Y_PIO					PIOA
-#define Y_PIO_ID				ID_PIOA
-#define Y_PIO_IDX				3
-#define Y_PIO_IDX_MASK			(1u << Y_PIO_IDX)
+#define ECHO_PIO					PIOA
+#define ECHO_PIO_ID				ID_PIOA
+#define ECHO_PIO_IDX				3
+#define ECHO_PIO_IDX_MASK			(1u << ECHO_PIO_IDX)
 
 // Configuracoes do botao da placa OLED:
 #define BUT1_PIO				PIOD
@@ -40,8 +40,11 @@
 #define LED3_OLED_PIO_IDX	2
 #define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
 
+#define MIN_TEMPO			58*1e-6
+#define SOUND				340
+
 //Global chars:
-volatile char echo_fall_flag = 1;
+volatile char echo_fall_flag = 0;
 volatile char echo_rise_flag = 0;
 volatile char but1_flag = 0;
 
@@ -84,8 +87,6 @@ void RTT_Handler(void) {
 
 	/* IRQ due to Alarm */
 	if ((ul_status & RTT_SR_ALMS) == RTT_SR_ALMS) {
-		pin_toggle(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK);
-		RTT_init(1, 2, RTT_MR_RTTINCIEN);
 	}
 	
 	/* IRQ due to Time has changed */
@@ -133,6 +134,16 @@ void but1_callback(void) {
 	but1_flag = 1;
 }
 
+void echo_callback(void) {
+	if (!pio_get(ECHO_PIO, PIO_INPUT, ECHO_PIO_IDX_MASK)) {
+		echo_fall_flag = 1;
+		echo_rise_flag = 0;
+		} else if (pio_get(ECHO_PIO, PIO_INPUT, ECHO_PIO_IDX_MASK)) {
+		echo_fall_flag = 0;
+		echo_rise_flag = 1;
+	}
+}
+
 void io_init(void) {
 	pmc_enable_periph_clk(BUT1_PIO_ID);
 	pio_configure(BUT1_PIO, PIO_INPUT, BUT1_PIO_IDX_MASK, PIO_PULLUP | PIO_DEBOUNCE);
@@ -149,9 +160,27 @@ void io_init(void) {
 	
 	NVIC_EnableIRQ(BUT1_PIO_ID);
 	NVIC_SetPriority(BUT1_PIO_ID, 3);
+	
+	//X (Trig):
+	pmc_enable_periph_clk(X_PIO_ID);
+	pio_configure(X_PIO, PIO_OUTPUT_0, X_PIO_IDX_MASK, PIO_DEFAULT);
+	
+	//Y (Echo):
+	pmc_enable_periph_clk(ECHO_PIO_ID);
+	pio_configure(ECHO_PIO, PIO_INPUT, ECHO_PIO_IDX_MASK, PIO_DEFAULT);
+	//pio_set_debounce_filter(ECHO_PIO, ECHO_PIO_IDX_MASK, 60);
+	pio_handler_set(ECHO_PIO,ECHO_PIO_ID,ECHO_PIO_IDX_MASK,PIO_IT_EDGE, echo_callback);
+	pio_enable_interrupt(ECHO_PIO, ECHO_PIO_IDX_MASK);
+	pio_get_interrupt_status(ECHO_PIO);
+	NVIC_EnableIRQ(ECHO_PIO_ID);
+	NVIC_SetPriority(ECHO_PIO_ID, 4); // Prioridade 4
 }	
 
-
+void trig_x(void) {
+	pio_set(X_PIO, X_PIO_IDX_MASK);
+	delay_us(10);
+	pio_clear(X_PIO, X_PIO_IDX_MASK);
+}
 int main (void)
 {
 	board_init();
@@ -171,16 +200,34 @@ int main (void)
 	RTT_init(1, 2, RTT_MR_ALMIEN); 
 	
 	char str[128];
+	int rtt_counter = 0;
   
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
 		if (but1_flag) {
-			gfx_mono_draw_string("           ", 0, 0, &sysfont);
-			sprintf(str, "ED %d", 1);
-			gfx_mono_draw_string(str, 0,0, &sysfont);
-			
+			trig_x();
+			rtt_counter = 0;
 		}
+		
+		if (echo_rise_flag && but1_flag) {
+			RTT_init(1.0/(2*MIN_TEMPO), 0, 0);
+			echo_rise_flag = 0;
+		}
+		if (echo_fall_flag && but1_flag) {
+			rtt_counter = rtt_read_timer_value(RTT);
+			double seconds = rtt_counter*MIN_TEMPO;
+			double distance = SOUND*seconds;
+			gfx_mono_draw_string("           ", 0, 0, &sysfont);
+			sprintf(str, "%lf", distance);
+			gfx_mono_draw_string(str, 0,0, &sysfont);
+			but1_flag = 0;
+			echo_fall_flag = 0;
+		}
+		//delay_ms(3000);
+		//gfx_mono_draw_string("           ", 0, 0, &sysfont);
+		//sprintf(str, "ED %d", 1);
+		//gfx_mono_draw_string(str, 0,0, &sysfont);
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
