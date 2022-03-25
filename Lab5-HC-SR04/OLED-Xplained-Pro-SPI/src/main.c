@@ -89,32 +89,6 @@ void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
 	tc_enable_interrupt(TC, TC_CHANNEL, TC_IER_CPCS);
 }
 
-void pin_toggle(Pio *pio, uint32_t mask) {
-	if(pio_get_output_data_status(pio, mask))
-	pio_clear(pio, mask);
-	else
-	pio_set(pio,mask);
-}
-
-void pisca_led (int n, int t) {
-	for (int i=0;i<n;i++){
-		pio_clear(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
-		delay_ms(t);
-		pio_set(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK);
-		delay_ms(t);
-	}
-}
-
-void LED_init(int estado) {
-	pmc_enable_periph_clk(LED1_OLED_PIO_ID);
-	pio_set_output(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK, estado, 0, 0);
-	pmc_enable_periph_clk(LED2_OLED_PIO_ID);
-	pio_set_output(LED2_OLED_PIO, LED2_OLED_PIO_IDX_MASK, estado, 0, 0);
-	pmc_enable_periph_clk(LED3_OLED_PIO_ID);
-	pio_set_output(LED3_OLED_PIO, LED3_OLED_PIO_IDX_MASK, estado, 0, 0);
-}
-
-
 void RTT_Handler(void) {
 	uint32_t ul_status;
 
@@ -230,8 +204,6 @@ int main (void)
   // Init OLED
 	gfx_mono_ssd1306_init();
 	
-	LED_init(1);
-	
 	//RTT
 	//RTT_init(1, 2, RTT_MR_ALMIEN); 
 	TC_init(TC0, ID_TC1, 1, 2);
@@ -239,7 +211,6 @@ int main (void)
 	
 	char str[128];
 	int rtt_counter = 0;
-  
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
@@ -276,10 +247,6 @@ int main (void)
 			start_measure = 1;
 			timeout_counter = 0;
 		}
-		//delay_ms(3000);
-		//gfx_mono_draw_string("           ", 0, 0, &sysfont);
-		//sprintf(str, "ED %d", 1);
-		//gfx_mono_draw_string(str, 0,0, &sysfont);
 		pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
