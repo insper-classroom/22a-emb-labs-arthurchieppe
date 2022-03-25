@@ -52,6 +52,39 @@ volatile char but1_flag = 0;
 void io_init(void);
 static void RTT_init(float freqPrescale, uint32_t IrqNPulses, uint32_t rttIRQSource);
 
+//TC
+volatile char start_measure = 0;
+
+void TC1_Handler(void) {
+	/**
+	* Devemos indicar ao TC que a interrup??o foi satisfeita.
+	* Isso ? realizado pela leitura do status do perif?rico
+	**/
+	volatile uint32_t status = tc_get_status(TC0, 1);
+
+	/** Muda o estado do LED (pisca) **/
+	//pin_toggle(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
+	start_measure = 1;
+}
+
+void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
+	uint32_t ul_div;
+	uint32_t ul_tcclks;
+	uint32_t ul_sysclk = sysclk_get_cpu_hz();
+
+	/* Configura o PMC */
+	pmc_enable_periph_clk(ID_TC);
+
+	/** Configura o TC para operar em  freq hz e interrup?c?o no RC compare */
+	tc_find_mck_divisor(freq, ul_sysclk, &ul_div, &ul_tcclks, ul_sysclk);
+	tc_init(TC, TC_CHANNEL, ul_tcclks | TC_CMR_CPCTRG);
+	tc_write_rc(TC, TC_CHANNEL, (ul_sysclk / ul_div) / freq);
+
+	/* Configura NVIC*/
+	NVIC_SetPriority(ID_TC, 4);
+	NVIC_EnableIRQ((IRQn_Type) ID_TC);
+	tc_enable_interrupt(TC, TC_CHANNEL, TC_IER_CPCS);
+}
 
 void pin_toggle(Pio *pio, uint32_t mask) {
 	if(pio_get_output_data_status(pio, mask))
@@ -197,7 +230,9 @@ int main (void)
 	LED_init(1);
 	
 	//RTT
-	RTT_init(1, 2, RTT_MR_ALMIEN); 
+	//RTT_init(1, 2, RTT_MR_ALMIEN); 
+	TC_init(TC0, ID_TC1, 1, 1);
+	tc_start(TC0, 1);
 	
 	char str[128];
 	int rtt_counter = 0;
@@ -205,16 +240,17 @@ int main (void)
 
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
-		if (but1_flag) {
+		if (start_measure) {
 			trig_x();
 			rtt_counter = 0;
+			start_measure = 0;
 		}
 		
-		if (echo_rise_flag && but1_flag) {
+		if (echo_rise_flag && !start_measure) {
 			RTT_init(1.0/(2*MIN_TEMPO), 0, 0);
 			echo_rise_flag = 0;
 		}
-		if (echo_fall_flag && but1_flag) {
+		if (echo_fall_flag && !start_measure) {
 			rtt_counter = rtt_read_timer_value(RTT);
 			double seconds = rtt_counter*MIN_TEMPO;
 			double distance = SOUND*seconds;
@@ -223,6 +259,7 @@ int main (void)
 			gfx_mono_draw_string(str, 0,0, &sysfont);
 			but1_flag = 0;
 			echo_fall_flag = 0;
+			start_measure = 1;
 		}
 		//delay_ms(3000);
 		//gfx_mono_draw_string("           ", 0, 0, &sysfont);
