@@ -41,12 +41,14 @@
 #define LED3_OLED_PIO_IDX_MASK  (1 << LED3_OLED_PIO_IDX)
 
 #define MIN_TEMPO			58*1e-6
+#define MAX_TEMPO			11764*1e-6
 #define SOUND				340
 
 //Global chars:
 volatile char echo_fall_flag = 0;
 volatile char echo_rise_flag = 0;
 volatile char but1_flag = 0;
+volatile char timeout_counter = 0;
 
 //RTT
 void io_init(void);
@@ -65,6 +67,7 @@ void TC1_Handler(void) {
 	/** Muda o estado do LED (pisca) **/
 	//pin_toggle(LED1_OLED_PIO, LED1_OLED_PIO_IDX_MASK);
 	start_measure = 1;
+	timeout_counter++;
 }
 
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
@@ -231,7 +234,7 @@ int main (void)
 	
 	//RTT
 	//RTT_init(1, 2, RTT_MR_ALMIEN); 
-	TC_init(TC0, ID_TC1, 1, 1);
+	TC_init(TC0, ID_TC1, 1, 2);
 	tc_start(TC0, 1);
 	
 	char str[128];
@@ -245,21 +248,33 @@ int main (void)
 			rtt_counter = 0;
 			start_measure = 0;
 		}
+		if (timeout_counter > 2) {
+			gfx_mono_draw_string("             ", 0, 0, &sysfont);
+			gfx_mono_draw_string("CHECK SENSOR", 0,0, &sysfont);
+		}
 		
 		if (echo_rise_flag && !start_measure) {
+			timeout_counter = 0;
 			RTT_init(1.0/(2*MIN_TEMPO), 0, 0);
 			echo_rise_flag = 0;
 		}
 		if (echo_fall_flag && !start_measure) {
 			rtt_counter = rtt_read_timer_value(RTT);
 			double seconds = rtt_counter*MIN_TEMPO;
-			double distance = SOUND*seconds;
-			gfx_mono_draw_string("           ", 0, 0, &sysfont);
-			sprintf(str, "%lf", distance);
-			gfx_mono_draw_string(str, 0,0, &sysfont);
+			double distance = SOUND*seconds*100;
+			if (distance > 400 ) {
+				gfx_mono_draw_string("             ", 0, 0, &sysfont);
+				gfx_mono_draw_string("TOO FAR", 0,0, &sysfont);
+			} else {
+				gfx_mono_draw_string("           ", 0, 0, &sysfont);
+				sprintf(str, " %0.2lf cm", distance);
+				gfx_mono_draw_string(str, 0,0, &sysfont);
+			}
+			
 			but1_flag = 0;
 			echo_fall_flag = 0;
 			start_measure = 1;
+			timeout_counter = 0;
 		}
 		//delay_ms(3000);
 		//gfx_mono_draw_string("           ", 0, 0, &sysfont);
