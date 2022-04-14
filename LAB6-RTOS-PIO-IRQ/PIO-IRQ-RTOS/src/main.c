@@ -45,6 +45,7 @@ extern void xPortSysTickHandler(void);
 
 /** Semaforo a ser usado pela task led */
 SemaphoreHandle_t xSemaphoreBut;
+SemaphoreHandle_t xSemaphoreButOled;
 
 /** Queue for msg log send data */
 QueueHandle_t xQueueLedFreq;
@@ -55,6 +56,7 @@ QueueHandle_t xQueueLedFreq;
 
 void but_callback(void);
 static void BUT_init(void);
+static void OLED_BUT_init(void);
 void pin_toggle(Pio *pio, uint32_t mask);
 static void USART1_init(void);
 void LED_init(int estado);
@@ -106,6 +108,13 @@ void but_callback(void) {
   xSemaphoreGiveFromISR(xSemaphoreBut, &xHigherPriorityTaskWoken);
 }
 
+void oled_but_callback(void) {
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	xSemaphoreGiveFromISR(xSemaphoreButOled, &xHigherPriorityTaskWoken);
+}
+
+
+
 /************************************************************************/
 /* TASKS                                                                */
 /************************************************************************/
@@ -141,12 +150,13 @@ static void task_but(void *pvParameters) {
 
   /* iniciliza botao */
   BUT_init();
+  OLED_BUT_init();
 
   uint32_t delayTicks = 2000;
 
   for (;;) {
     /* aguarda por tempo inderteminado até a liberacao do semaforo */
-    if (xSemaphoreTake(xSemaphoreBut, 1000)) {
+    if (xSemaphoreTake(xSemaphoreBut, 100)) {
       /* atualiza frequencia */
       delayTicks -= 100;
 
@@ -158,6 +168,18 @@ static void task_but(void *pvParameters) {
         delayTicks = 900;
       }
     }
+	if (xSemaphoreTake(xSemaphoreButOled, 100)) {
+		/* atualiza frequencia */
+		delayTicks += 100;
+
+		/* envia nova frequencia para a task_led */
+		xQueueSend(xQueueLedFreq, (void *)&delayTicks, 10);
+
+		/* garante range da freq. */
+		if (delayTicks == 100) {
+			delayTicks = 900;
+		}
+	}
   }
 }
 
@@ -220,7 +242,7 @@ static void OLED_BUT_init(void) {
 	pio_set_debounce_filter(BUT1_PIO, BUT1_IDX_MASK, 60);
 	pio_enable_interrupt(BUT1_PIO, BUT1_IDX_MASK);
 	pio_handler_set(BUT1_PIO, BUT1_PIO_ID, BUT1_IDX_MASK, PIO_IT_FALL_EDGE,
-	but_callback);
+	oled_but_callback);
 
 	pio_get_interrupt_status(BUT1_PIO);
 	
@@ -249,6 +271,10 @@ int main(void) {
   xSemaphoreBut = xSemaphoreCreateBinary();
   if (xSemaphoreBut == NULL)
     printf("falha em criar o semaforo \n");
+	
+	xSemaphoreButOled = xSemaphoreCreateBinary();
+	if (xSemaphoreButOled == NULL)
+	printf("falha em criar o semaforo \n");
 
   /* cria queue com 32 "espacos" */
   /* cada espaço possui o tamanho de um inteiro*/
