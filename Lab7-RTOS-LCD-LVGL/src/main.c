@@ -7,6 +7,7 @@
 #include "ili9341.h"
 #include "lvgl.h"
 #include "touch/touch.h"
+#include "clock.h"
 
 LV_FONT_DECLARE(dseg70);
 LV_FONT_DECLARE(dseg30);
@@ -229,12 +230,12 @@ void lv_termostato(void) {
 	//Botao power:
 	lv_obj_t * btnPower = lv_btn_create(lv_scr_act());
     lv_obj_add_event_cb(btnPower, power_handler, LV_EVENT_ALL, NULL);
-    lv_obj_align(btnPower, LV_ALIGN_BOTTOM_LEFT, 10, 0);
+    lv_obj_align(btnPower, LV_ALIGN_BOTTOM_LEFT, 5, 0);
 	lv_obj_add_style(btnPower, &style, 0);
 	lv_obj_set_width(btnPower, 60);
 	lv_obj_set_height(btnPower, 60);
 	labelBtnPower = lv_label_create(btnPower);
-	lv_label_set_text(labelBtnPower, "[  "LV_SYMBOL_POWER);
+	lv_label_set_text(labelBtnPower, "[ "LV_SYMBOL_POWER);
 	lv_obj_center(labelBtnPower);
 
 	//Botao menu:
@@ -245,19 +246,26 @@ void lv_termostato(void) {
 	lv_obj_set_height(btnMenu, 60);
     lv_obj_align_to(btnMenu, btnPower, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
 	labelBtnMenu = lv_label_create(btnMenu);
-	lv_label_set_text(labelBtnMenu, " | M ");
+	lv_label_set_text(labelBtnMenu, "| M |");
 	lv_obj_center(labelBtnMenu);
 	
 	// //Botao Clock:
-	lv_obj_t * btnClk = lv_btn_create(lv_scr_act());
-    lv_obj_add_event_cb(btnClk, clk_handler, LV_EVENT_ALL, NULL);
-	lv_obj_add_style(btnClk, &style, 0);
-	lv_obj_set_width(btnClk, 60);
-	lv_obj_set_height(btnClk, 60);
-    lv_obj_align_to(btnClk, btnMenu, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
-	labelBtnClk = lv_label_create(btnClk);
-	lv_label_set_text(labelBtnClk, "| " LV_SYMBOL_SETTINGS " ]");
-	lv_obj_center(labelBtnClk);
+	lv_obj_t * btnClk = lv_img_create(lv_scr_act());
+	lv_img_set_src(btnClk, &clock);
+	lv_obj_align(btnClk, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_add_event_cb(btnClk, clk_handler, LV_EVENT_ALL, NULL);
+	lv_obj_align_to(btnClk, btnMenu, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+	
+	//Botao antigo sem imagem:
+	// lv_obj_t * btnClk = lv_btn_create(lv_scr_act());
+    // lv_obj_add_event_cb(btnClk, clk_handler, LV_EVENT_ALL, NULL);
+	// lv_obj_add_style(btnClk, &style, 0);
+	// lv_obj_set_width(btnClk, 60);
+	// lv_obj_set_height(btnClk, 60);
+    // lv_obj_align_to(btnClk, btnMenu, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+	// labelBtnClk = lv_label_create(btnClk);
+	// lv_label_set_text(labelBtnClk, "| " LV_SYMBOL_SETTINGS " ]");
+	// lv_obj_center(labelBtnClk);
 
 	// //Botao down:
 	lv_obj_t * btnDown = lv_btn_create(lv_scr_act());
@@ -265,7 +273,7 @@ void lv_termostato(void) {
 	lv_obj_add_style(btnDown, &style, 0);
 	lv_obj_set_width(btnDown, 60);
 	lv_obj_set_height(btnDown, 60);
-    lv_obj_align(btnDown, LV_ALIGN_BOTTOM_RIGHT, -10, 0);
+    lv_obj_align(btnDown, LV_ALIGN_BOTTOM_RIGHT, -5, 0);
 	labelBtnDown = lv_label_create(btnDown);
 	lv_label_set_text(labelBtnDown, LV_SYMBOL_DOWN " ]");
 	lv_obj_center(labelBtnDown);
@@ -278,7 +286,7 @@ void lv_termostato(void) {
 	lv_obj_set_height(btnUp, 60);
     lv_obj_align_to(btnUp, btnDown, LV_ALIGN_OUT_LEFT_MID, 0, 0);
 	labelBtnUp = lv_label_create(btnUp);
-	lv_label_set_text(labelBtnUp, "[  " LV_SYMBOL_UP " |");
+	lv_label_set_text(labelBtnUp, "] [ " LV_SYMBOL_UP " |");
 	lv_obj_center(labelBtnUp);
 
 	//Label Floor:
