@@ -39,6 +39,7 @@ lv_obj_t * labelBtnDown;
 lv_obj_t * labelFloor;
 lv_obj_t * labelClock;
 lv_obj_t * labelSetValue;
+lv_obj_t * labelSetValueDecimal;
 
 SemaphoreHandle_t xSemaphoreClock;
 
@@ -294,12 +295,19 @@ void lv_termostato(void) {
     lv_obj_set_style_text_color(labelClock, lv_color_white(), LV_STATE_DEFAULT);
     lv_label_set_text_fmt(labelClock, "%5s", "17:53");
 
-	//SetValue"
+	//SetValue
 	labelSetValue = lv_label_create(lv_scr_act());
-    lv_obj_align_to(labelSetValue, labelClock, LV_ALIGN_OUT_BOTTOM_MID, -20 , 20);
+    lv_obj_align_to(labelSetValue, labelClock, LV_ALIGN_OUT_BOTTOM_MID, -15 , 20);
     lv_obj_set_style_text_font(labelSetValue, &dseg50, LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(labelSetValue, lv_color_white(), LV_STATE_DEFAULT);
     lv_label_set_text_fmt(labelSetValue, "%02d", 22);
+
+	//SetValueDecimal
+	labelSetValueDecimal = lv_label_create(lv_scr_act());
+    lv_obj_align_to(labelSetValueDecimal, labelFloor, LV_ALIGN_OUT_RIGHT_BOTTOM, 10 , 0);
+    lv_obj_set_style_text_font(labelSetValueDecimal, &dseg30, LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(labelSetValueDecimal, lv_color_white(), LV_STATE_DEFAULT);
+    lv_label_set_text_fmt(labelSetValueDecimal, "%02s", ".4");
 }
 
 /************************************************************************/
