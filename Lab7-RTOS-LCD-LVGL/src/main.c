@@ -42,6 +42,8 @@ lv_obj_t * labelSetValue;
 
 SemaphoreHandle_t xSemaphoreClock;
 
+volatile char power = 1;
+
 
 /************************************************************************/
 /* RTOS                                                                 */
@@ -133,6 +135,7 @@ static void power_handler(lv_event_t * e) {
 
 	if(code == LV_EVENT_CLICKED) {
 		LV_LOG_USER("Clicked");
+		power = 0;
 	}
 	else if(code == LV_EVENT_VALUE_CHANGED) {
 		LV_LOG_USER("Toggled");
@@ -309,9 +312,17 @@ static void task_lcd(void *pvParameters) {
 	lv_termostato();
 
 	for (;;)  {
-		lv_tick_inc(50);
-		lv_task_handler();
-		vTaskDelay(50);
+		if (power) {
+			lv_tick_inc(50);
+			lv_task_handler();
+			vTaskDelay(50);
+		} else {
+			lv_obj_clean(lv_scr_act());
+			lv_tick_inc(50);
+			lv_task_handler();
+			vTaskDelay(50);
+		}
+		
 	}
 }
 
