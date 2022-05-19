@@ -117,9 +117,13 @@ static void clk_handler(lv_event_t * e) {
 
 static void up_handler(lv_event_t * e) {
 	lv_event_code_t code = lv_event_get_code(e);
-
+    char *c;
+    int temp;
 	if(code == LV_EVENT_CLICKED) {
-		LV_LOG_USER("Clicked");
+		c = lv_label_get_text(labelSetValue);
+        temp = atoi(c);
+        lv_label_set_text_fmt(labelSetValue, "%02d", temp + 1);
+		// LV_LOG_USER("Clicked");
 	}
 	else if(code == LV_EVENT_VALUE_CHANGED) {
 		LV_LOG_USER("Toggled");
@@ -128,8 +132,12 @@ static void up_handler(lv_event_t * e) {
 
 static void down_handler(lv_event_t * e) {
 	lv_event_code_t code = lv_event_get_code(e);
-
+	char *c;
+    int temp;
 	if(code == LV_EVENT_CLICKED) {
+		c = lv_label_get_text(labelSetValue);
+        temp = atoi(c);
+        lv_label_set_text_fmt(labelSetValue, "%02d", temp - 1);
 		LV_LOG_USER("Clicked");
 	}
 	else if(code == LV_EVENT_VALUE_CHANGED) {
