@@ -436,6 +436,8 @@ void configure_lvgl(void) {
 	disp_drv.flush_cb = my_flush_cb;        /*Set a flush callback to draw to the display*/
 	disp_drv.hor_res = LV_HOR_RES_MAX;      /*Set the horizontal resolution in pixels*/
 	disp_drv.ver_res = LV_VER_RES_MAX;      /*Set the vertical resolution in pixels*/
+	disp_drv.sw_rotate = 1;
+	disp_drv.rotated = LV_DISP_ROT_270;
 
 	lv_disp_t * disp;
 	disp = lv_disp_drv_register(&disp_drv); /*Register the driver and save the created display objects*/
