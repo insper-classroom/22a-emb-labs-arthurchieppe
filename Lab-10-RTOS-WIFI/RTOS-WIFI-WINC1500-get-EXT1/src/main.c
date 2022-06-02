@@ -13,6 +13,12 @@
 #define LED_PIO_ID   ID_PIOC
 #define LED_IDX      8
 #define LED_IDX_MASK (1 << LED_IDX)
+
+#define BUT_PIO PIOA
+#define BUT_PIO_ID ID_PIOA
+#define BUT_PIO_IDX 11
+#define BUT_PIO_IDX_MASK (1 << BUT_PIO_IDX)
+
 /************************************************************************/
 /* WIFI                                                                 */
 /************************************************************************/
@@ -53,6 +59,7 @@ static char server_host_name[] = MAIN_SERVER_NAME;
 #define TASK_PROCESS_STACK_SIZE   (4*4096/sizeof(portSTACK_TYPE))
 #define TASK_PROCESS_PRIORITY     (0)
 
+SemaphoreHandle_t xSemaphoreLED;
 SemaphoreHandle_t xSemaphore;
 QueueHandle_t xQueueMsg;
 
@@ -224,15 +231,39 @@ static void wifi_cb(uint8_t u8MsgType, void *pvMsg)
   }
 }
 
+void but_callback(void) {
+  xSemaphoreGiveFromISR(xSemaphoreLED, pdFALSE);
+}
+
 /************************************************************************/
 /* TASKS                                                                */
 /************************************************************************/
 
+void format_request(char *g_sendBuffer, char *path) {
+  sprintf(g_sendBuffer, "GET %s HTTP/1.1\r\n Accept: */*\r\n\r\n", path);
+}
+
+
 static void task_process(void *pvParameters) {
 	pmc_enable_periph_clk(LED_PIO_ID);
 	pio_set_output(LED_PIO, LED_IDX_MASK, 1, 0, 0);
+
+  pio_configure(BUT_PIO, PIO_INPUT, BUT_PIO_IDX_MASK,
+                PIO_PULLUP | PIO_DEBOUNCE);
+  pio_set_debounce_filter(BUT_PIO, BUT_PIO_IDX_MASK, 60);
+  pio_enable_interrupt(BUT_PIO, BUT_PIO_IDX_MASK);
+  pio_handler_set(BUT_PIO, BUT_PIO_ID, BUT_PIO_IDX_MASK, PIO_IT_FALL_EDGE,
+                  but_callback);
+
+  pio_get_interrupt_status(BUT_PIO);
+				  
+  /* configura prioridae */
+  NVIC_EnableIRQ(BUT_PIO_ID);
+  NVIC_SetPriority(BUT_PIO_ID, 4);
+
   printf("task process created \n");
   vTaskDelay(1000);
+  int led_flag = 0;
 
   uint msg_counter = 0;
   tstrSocketRecvMsg *p_recvMsg;
@@ -247,8 +278,19 @@ static void task_process(void *pvParameters) {
   };
 
   enum states state = WAIT;
+  int previous = 0;
 
   while(1){
+    
+     if (xSemaphoreTake(xSemaphoreLED, 100)) {
+      led_flag = !led_flag;
+    }
+    if (led_flag) {
+      pio_clear(LED_PIO, LED_IDX_MASK);
+     } else {
+       pio_set(LED_PIO, LED_IDX_MASK);
+     } 
+    
 
     switch(state){
       case WAIT:
@@ -262,7 +304,8 @@ static void task_process(void *pvParameters) {
 
       case GET:
       printf("STATE: GET \n");
-      sprintf((char *)g_sendBuffer, MAIN_PREFIX_BUFFER);
+      // sprintf((char *)g_sendBuffer, MAIN_PREFIX_BUFFER);
+      format_request(&g_sendBuffer, "/status");
       send(tcp_client_socket, g_sendBuffer, strlen((char *)g_sendBuffer), 0);
       state = ACK;
       break;
@@ -302,11 +345,12 @@ static void task_process(void *pvParameters) {
 		
 		
 		printf("Edir: %c\n", p_recvMsg->pu8Buffer[i]);
-		if (p_recvMsg->pu8Buffer[i] == '1'){
-			pio_clear(LED_PIO, LED_IDX_MASK);
-			} else {
-				
-				pio_set(LED_PIO, LED_IDX_MASK);
+		if (p_recvMsg->pu8Buffer[i] == '1' && led_flag == 0){
+			led_flag = 1;
+      previous = 1;
+			} else if (p_recvMsg->pu8Buffer[i] == '0' && led_flag == 1) {
+				previous = 0;
+				led_flag = 0;
 			}
 		}
       else {
@@ -405,6 +449,9 @@ int main(void)
   /* Initialize the UART console. */
   configure_console();
   printf(STRING_HEADER);
+  xSemaphoreLED = xSemaphoreCreateBinary();
+  if (xSemaphoreLED == NULL)
+    printf("falha em criar o semaforo \n");
 
   xTaskCreate(task_wifi, "Wifi", TASK_WIFI_STACK_SIZE, NULL, TASK_WIFI_PRIORITY, &xHandleWifi);
   xTaskCreate(task_process, "process", TASK_PROCESS_STACK_SIZE, NULL, TASK_PROCESS_PRIORITY,  NULL );
