@@ -5,6 +5,7 @@
 #include "driver/include/m2m_wifi.h"
 #include "socket/include/socket.h"
 #include "util.h"
+#include <ctype.h>
 
 //LED placa:
 // LEDs
@@ -228,7 +229,8 @@ static void wifi_cb(uint8_t u8MsgType, void *pvMsg)
 /************************************************************************/
 
 static void task_process(void *pvParameters) {
-  pio_configure(LED_PIO, PIO_OUTPUT_1, LED_IDX_MASK, PIO_DEFAULT);
+	pmc_enable_periph_clk(LED_PIO_ID);
+	pio_set_output(LED_PIO, LED_IDX_MASK, 1, 0, 0);
   printf("task process created \n");
   vTaskDelay(1000);
 
@@ -291,11 +293,22 @@ static void task_process(void *pvParameters) {
         printf(p_recvMsg->pu8Buffer);
         printf(STRING_EOL);  printf(STRING_LINE);
         state = DONE;
-		char reference[10] =  "\"led\":";
-		char *loc_msg = strstr(p_recvMsg->pu8Buffer, reference);
-		printf("Edir: %c\n", loc_msg[7]);
-		//printf("Edir2: %s\n", p_recvMsg->pu8Buffer);
-      }
+		int i = 0;
+		for (; p_recvMsg->pu8Buffer[i] != '\0'; i ++) {
+			if (isdigit(p_recvMsg->pu8Buffer[i])) {
+				break;
+			}
+		}
+		
+		
+		printf("Edir: %c\n", p_recvMsg->pu8Buffer[i]);
+		if (p_recvMsg->pu8Buffer[i] == '1'){
+			pio_clear(LED_PIO, LED_IDX_MASK);
+			} else {
+				
+				pio_set(LED_PIO, LED_IDX_MASK);
+			}
+		}
       else {
         state = TIMEOUT;
       };
